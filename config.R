@@ -32,7 +32,7 @@ config <- function(basetime) {
           input = list (
             database = "valuepotion_real",
             table = "rc_track_daily",
-            columns = c("p_clientid", "deviceid", "session", "revenueamount", "currency", "eventname", "eventid", "dt", "deviceos", "deviceosversion", "appversion", "devicemodelname", "country", "userinfo_birth", "userinfo_gender", "userinfo_level"),
+            columns = c("p_clientid", "deviceid", "session", "revenueamount", "currency", "eventname", "eventid", "dt", "deviceos", "deviceosversion", "appversion", "devicemodelname", "country", "userinfo_birth", "userinfo_gender", "userinfo_level")
           ),
           overwrite = TRUE
         ),
@@ -63,7 +63,6 @@ config <- function(basetime) {
         balancer = list (
           main = "com.valuepotion.analytics.DoNothing",
           properties = list (
-            mapred.reduce.tasks = 100,
             mapred.max.split.size = 67108864
           ),
           overwrite = TRUE

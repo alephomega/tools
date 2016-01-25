@@ -29,9 +29,9 @@ basetime <- function() {
   args <- commandArgs(TRUE)
   
   t0 <- NA
-  m <- match("--basetime", args, 0L)
+  m <- match("--base-time", args, 0L)
   if (m) {
-    t0 <- as.integer(args[m + 1])
+    t0 <- args[m + 1]
   }
   
   t0
@@ -39,10 +39,11 @@ basetime <- function() {
 
 
 setwd(basedir())
-source(config.R)
+source("config.R")
 
 cat(print.timestamp(), "Reading configurations.\n")
-conf <- config(basetime)
+print(basetime())
+conf <- config(basetime())
 print(conf)
 
 cat(print.timestamp(), "Querying target clients.\n")
@@ -73,13 +74,19 @@ if (nrow(d) > 0) {
     filter <- sprintf("\"p_dt = '%s' and (%s)\"", basedate, paste(sprintf("p_clientid = '%s'", d$client_id[i, ]), collapse = " or "))
     clients <- paste(d$client_id[i, ], collapse = ",")
     
-    cat(print.timestamp(), sprintf("Running analytics job.\n", command))
+    cat(print.timestamp(), "Running analytics job.\n")
+    cat(sprintf("basedate: %s\n", basedate))
+    cat(sprintf("timezone offset: %s\n", offset))
+    cat("clients:\n")
+
+    print(clients)
+    
     task <- conf$job$tasks$daily_summary
     args <- c(
       "--base-date", basedate, 
       "--database", task$input$database, 
       "--table", task$input$table,
-      "--columns", task$input$columns,
+      "--columns", paste(task$input$columns, collapse = ","),
       "--filter", filter,
       "--output", sprintf("%s/%s/%s/daily_summary", conf$job$base_dir, basedate, offset),
       "--intermediate", sprintf("%s/%s/%s/daily_summary.tmp", conf$job$base_dir, basedate, offset)
@@ -90,15 +97,15 @@ if (nrow(d) > 0) {
     }
     
     cat(print.timestamp(), "Running daily-summary task.\n")
-    cat("properties\:n")
-    print(props)
+    cat("properties:\n")
+    print(task$properties)
     cat("args:\n")
-    print(args)
+    cat(paste(args, collapse = ", "), "\n")
     
     mr.run(
       fs = conf$fs, 
       jt = conf$jt, 
-      jar = file.path("lib", conf$jar), 
+      jar = file.path(getwd(), "lib", conf$jar), 
       class = task$main,
       args = args,
       props = task$properties
@@ -108,7 +115,7 @@ if (nrow(d) > 0) {
     args <- c(
       "--base-date", basedate, 
       "--input", paste(sprintf("%s/%s/%s/daily_summary/*", conf$job$base_dir, basedate, offset), sprintf("%s/%s/**/part-*", task$attribution_base_dir, basedate), sep = ","),
-      "--output", sprintf("%s/%s/%s/daily_summary/attribution", conf$job$base_dir, basedate, offset),
+      "--output", sprintf("%s/%s/%s/daily_summary/attribution", conf$job$base_dir, basedate, offset)
     )
     
     if (task$overwrite) {
@@ -116,27 +123,34 @@ if (nrow(d) > 0) {
     }
     
     cat(print.timestamp(), "Running attribution task.\n")
-    cat("properties\:n")
-    print(props)
+    cat("properties:\n")
+    print(task$properties)
     cat("args:\n")
     print(args)
     
     mr.run(
       fs = conf$fs, 
       jt = conf$jt, 
-      jar = file.path("lib", conf$jar), 
+      jar = file.path(getwd(), "lib", conf$jar), 
       class = task$main,
       args = args,
       props = task$properties
     )
 
     task <- conf$job$tasks$attributes
+
+    offset.exists <- (nrow(dfs.ls(conf$fs, sprintf("%s/customer_attributes/%s", conf$job$base_dir, offset))) > 0)
+    inputs <- sprintf("%s/%s/%s/daily_summary/attribution/*", conf$job$base_dir, basedate, offset)
+    if (offset.exists) {
+      inputs <- c(inputs, sprintf("%s/customer_attributes/%s/*", conf$job$base_dir, offset))
+    }
+
     args <- c(
       "--base-date", basedate, 
       "--defection", task$defection,
       "--risk", task$risk,
-      "--input", paste(sprintf("%s/%s/%s/daily_summary/attribution/*", conf$job$base_dir, basedate, offset), sprintf("%s/customer_attributes/*", conf$job$base_dir), sep = ","),
-      "--output", sprintf("%s/%s/%s/customer_attributes", conf$job$base_dir, basedate, offset),
+      "--input", paste(inputs, collapse = ","),
+      "--output", sprintf("%s/%s/%s/customer_attributes", conf$job$base_dir, basedate, offset)
     )
     
     if (task$overwrite) {
@@ -144,33 +158,43 @@ if (nrow(d) > 0) {
     }
     
     cat(print.timestamp(), "Running customer-attributes task.\n")
-    cat("properties\:n")
-    print(props)
+    cat("properties:\n")
+    print(task$properties)
     cat("args:\n")
     print(args)
     
     mr.run(
       fs = conf$fs, 
       jt = conf$jt, 
-      jar = file.path("lib", conf$jar), 
+      jar = file.path(getwd(), "lib", conf$jar), 
       class = task$main,
       args = args,
       props = task$properties
     )
     
-    task <- conf$job$tasks$balancer
+   task <- conf$job$tasks$balancer
     args <- c(
       "--base-date", basedate, 
-      "--input", sprintf("%s/%s/%s/customer_attributes/\{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN\}-*", conf$job$base_dir, basedate, offset),
-      "--output", sprintf("%s/%s/%s/customer_attributes", conf$job$base_dir, basedate, offset),
+      "--input", sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
+      "--output", sprintf("%s/customer_attributes/%s", conf$job$base_dir, offset)
     )
     
     if (task$overwrite) {
       args <- c(args, "--overwrite")
     }
-    
+
+    du <- dfs.du(conf$fs, sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,LOST,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset))
+    if (nrow(du) == 0) {
+      reduce.tasks <- 10L
+    } else {
+      reduce.tasks <- as.integer(sum(du$length, na.rm = TRUE) / (128 * 1024 * 1024)) + 1
+    }
+   
+    props = task$properties 
+    props$mapred.reduce.tasks = reduce.tasks
+
     cat(print.timestamp(), "Running balancer task.\n")
-    cat("properties\:n")
+    cat("properties:\n")
     print(props)
     cat("args:\n")
     print(args)
@@ -178,14 +202,12 @@ if (nrow(d) > 0) {
     mr.run(
       fs = conf$fs, 
       jt = conf$jt, 
-      jar = file.path("lib", conf$jar), 
+      jar = file.path(getwd(), "lib", conf$jar), 
       class = task$main,
       args = args,
-      props = task$properties
+      props = props
     )
-  }
+ }
 } else {
   cat(print.timestamp(), "No clients to process.\n")
 }
-
-

@@ -5,10 +5,10 @@ mr.run <- function(fs, jt, jar, class, args = character(0), props = list(0), fil
   
   if (length(props) > 0) {
     for (name in names(props)) {
-      properties$setProperty(name, props[[name]])  
+      properties$setProperty(name, as.character(props[[name]])) 
     }
   }
   
   HadoopJar <- J("com.valuepotion.mrtools.HadoopJar")
-  HadoopJar.run(jar, class, properties, args, files, libjars, archives)
+  HadoopJar$run(jar, class, properties, args, files, libjars, archives)
 }

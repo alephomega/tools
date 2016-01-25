@@ -65,9 +65,9 @@ if (nrow(d) > 0) {
     basedate <- d$basedate[i]
     
     if (grepl("^-", d$offset[i])) {
-      offset <- sprintf("B%04s", substr(d$offset[i], 2, length(d$offset[i])))  
+      offset <- sprintf("B%04d", as.integer(substr(d$offset[i], 2, nchar(d$offset[i]))))  
     } else {
-      offset <- sprintf("A%04s", d$offset[i])
+      offset <- sprintf("A%04s", as.integer(d$offset[i]))
     }
 
     d$client_id <- as.matrix(d$client_id)
@@ -111,6 +111,12 @@ if (nrow(d) > 0) {
       props = task$properties
     )
     
+    du <- dfs.du(conf$fs, sprintf("%s/%s/%s/daily_summary/part-*", conf$job$base_dir, basedate, offset))
+    if (sum(du$length, na.rm = TRUE) == 0) {
+      break 
+	}
+
+
     task <- conf$job$tasks$attribution
     args <- c(
       "--base-date", basedate, 
@@ -138,7 +144,6 @@ if (nrow(d) > 0) {
     )
 
     task <- conf$job$tasks$attributes
-
     offset.exists <- (nrow(dfs.ls(conf$fs, sprintf("%s/customer_attributes/%s", conf$job$base_dir, offset))) > 0)
     inputs <- sprintf("%s/%s/%s/daily_summary/attribution/*", conf$job$base_dir, basedate, offset)
     if (offset.exists) {
@@ -184,12 +189,8 @@ if (nrow(d) > 0) {
     }
 
     du <- dfs.du(conf$fs, sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,LOST,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset))
-    if (nrow(du) == 0) {
-      reduce.tasks <- 10L
-    } else {
-      reduce.tasks <- as.integer(sum(du$length, na.rm = TRUE) / (128 * 1024 * 1024)) + 1
-    }
-   
+    reduce.tasks <- as.integer(sum(du$length, na.rm = TRUE) / (128 * 1024 * 1024)) + 1
+    
     props = task$properties 
     props$mapred.reduce.tasks = reduce.tasks
 
@@ -252,9 +253,7 @@ if (nrow(d) > 0) {
       args = args,
       props = task$properties
     )
-
- }
-
+  }
 } else {
   cat(print.timestamp(), "No clients to process.\n")
 }

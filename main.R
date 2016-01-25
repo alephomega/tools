@@ -172,7 +172,7 @@ if (nrow(d) > 0) {
       props = task$properties
     )
     
-   task <- conf$job$tasks$balancer
+    task <- conf$job$tasks$balancer
     args <- c(
       "--base-date", basedate, 
       "--input", sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
@@ -207,7 +207,31 @@ if (nrow(d) > 0) {
       args = args,
       props = props
     )
+
+    task <- conf$job$tasks$usermeta 
+    args <- c(
+      "--base-date", basedate, 
+      "--input", sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
+      "--database", task$output$database,
+      "--table", task$output$table
+    )
+
+    cat(print.timestamp(), "Running usermeta task.\n")
+    cat("properties:\n")
+    print(task$properties)
+    cat("args:\n")
+    print(args)
+
+    mr.run(
+      fs = conf$fs,
+      jt = conf$jt,
+      jar = file.path(getwd(), "lib", conf$jar),
+      class = task$main,
+      args = args,
+      props = task$properties
+    )
  }
+
 } else {
   cat(print.timestamp(), "No clients to process.\n")
 }

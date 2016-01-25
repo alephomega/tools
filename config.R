@@ -66,6 +66,21 @@ config <- function(basetime) {
             mapred.max.split.size = 67108864
           ),
           overwrite = TRUE
+        ),
+        
+        usermeta = list (
+          main = "com.valuepotion.analytics.legacy.Usermeta",
+          properties = list (
+            mapred.reduce.tasks = 50,
+            mapred.max.split.size = 67108864L,
+            mapred.reduce.tasks.speculative.execution = FALSE,
+            hive.metastore.uris = "thrift://on-hadoop-master2.daum.net:9083"
+          ), 
+
+          output = list (
+            database = "valuepotion_real",
+            table = "usermeta"
+          )
         )
       )
     )

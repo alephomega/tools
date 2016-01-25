@@ -230,6 +230,29 @@ if (nrow(d) > 0) {
       args = args,
       props = task$properties
     )
+
+    task <- conf$job$tasks$daily_statistics 
+    args <- c(
+      "--base-date", basedate, 
+      "--input", sprintf("%s/%s/%s/customer_attributes/part-*", conf$job$base_dir, basedate, offset),
+      "--output", sprintf("%s/%s/%s/daily_statistics", conf$job$base_dir, basedate, offset)
+    )
+
+    cat(print.timestamp(), "Running daily-statistics task.\n")
+    cat("properties:\n")
+    print(task$properties)
+    cat("args:\n")
+    print(args)
+
+    mr.run(
+      fs = conf$fs,
+      jt = conf$jt,
+      jar = file.path(getwd(), "lib", conf$jar),
+      class = task$main,
+      args = args,
+      props = task$properties
+    )
+
  }
 
 } else {

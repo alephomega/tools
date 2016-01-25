@@ -81,6 +81,16 @@ config <- function(basetime) {
             database = "valuepotion_real",
             table = "usermeta"
           )
+        ),
+
+        daily_statistics = list (
+          main = "com.valuepotion.analytics.DailyAnalytics",
+          properties = list (
+            mapred.reduce.tasks = 30,
+            mapred.max.split.size = 67108864
+          ),
+
+          overwrite = TRUE
         )
       )
     )

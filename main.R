@@ -42,7 +42,8 @@ setwd(basedir())
 source("config.R")
 
 cat(print.timestamp(), "Reading configurations.\n")
-print(basetime())
+cat(sprintf("basetime: %s\n\n", basetime()))
+
 conf <- config(basetime())
 print(conf)
 

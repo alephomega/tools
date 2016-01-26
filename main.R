@@ -67,7 +67,7 @@ if (nrow(d) > 0) {
     if (grepl("^-", d$offset[i])) {
       offset <- sprintf("B%04d", as.integer(substr(d$offset[i], 2, nchar(d$offset[i]))))  
     } else {
-      offset <- sprintf("A%04s", as.integer(d$offset[i]))
+      offset <- sprintf("A%04d", as.integer(d$offset[i]))
     }
 
     d$client_id <- as.matrix(d$client_id)
@@ -111,11 +111,11 @@ if (nrow(d) > 0) {
       props = task$properties
     )
     
-    du <- dfs.du(conf$fs, sprintf("%s/%s/%s/daily_summary/part-*", conf$job$base_dir, basedate, offset))
+    du <- dfs.du(conf$fs, sprintf("%s/%s/%s/daily_summary", conf$job$base_dir, basedate, offset))
+    du <- subset(du, subset = !grepl("/[_\\.][^/]*$", file), select = length)
     if (sum(du$length, na.rm = TRUE) == 0) {
       break 
 	}
-
 
     task <- conf$job$tasks$attribution
     args <- c(
@@ -144,9 +144,9 @@ if (nrow(d) > 0) {
     )
 
     task <- conf$job$tasks$attributes
-    offset.exists <- (nrow(dfs.ls(conf$fs, sprintf("%s/customer_attributes/%s", conf$job$base_dir, offset))) > 0)
+    exists <- (nrow(dfs.ls(conf$fs, sprintf("%s/customer_attributes/%s", conf$job$base_dir, offset))) > 0)
     inputs <- sprintf("%s/%s/%s/daily_summary/attribution/*", conf$job$base_dir, basedate, offset)
-    if (offset.exists) {
+    if (exists) {
       inputs <- c(inputs, sprintf("%s/customer_attributes/%s/*", conf$job$base_dir, offset))
     }
 

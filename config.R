@@ -91,6 +91,16 @@ config <- function(basetime) {
           ),
 
           overwrite = TRUE
+        ),
+
+        periodic_statistics = list (
+          main = "com.valuepotion.analytics.PeriodicAnalytics",
+          properties = list (
+            mapred.reduce.tasks = 5,
+            mapred.max.split.size = 67108864
+          ),
+
+          overwrite = TRUE
         )
       )
     )

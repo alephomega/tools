@@ -43,7 +43,7 @@ config <- function(basetime) {
             mapred.reduce.tasks = 10,
             mapred.max.split.size = 67108864
           ),
-          attribution_base_dir = "/user/hdfs/attribution/by_hour",
+          attribution_hdfs = "/user/hdfs/attribution/by_hour",
           overwrite = TRUE
         ),
     

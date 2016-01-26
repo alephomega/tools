@@ -120,7 +120,7 @@ if (nrow(d) > 0) {
     task <- conf$job$tasks$attribution
     args <- c(
       "--base-date", basedate, 
-      "--input", paste(sprintf("%s/%s/%s/daily_summary/*", conf$job$base_dir, basedate, offset), sprintf("%s/%s/**/part-*", task$attribution_base_dir, basedate), sep = ","),
+      "--input", paste(sprintf("%s/%s/%s/daily_summary/*", conf$job$base_dir, basedate, offset), sprintf("%s/%s/**/part-*", task$attribution_hdfs, basedate), sep = ","),
       "--output", sprintf("%s/%s/%s/daily_summary/attribution", conf$job$base_dir, basedate, offset)
     )
     
@@ -144,10 +144,10 @@ if (nrow(d) > 0) {
     )
 
     task <- conf$job$tasks$attributes
-    exists <- (nrow(dfs.ls(conf$fs, sprintf("%s/customer_attributes/%s", conf$job$base_dir, offset))) > 0)
+    exists <- (nrow(dfs.ls(conf$fs, sprintf("%s/attributes/%s", conf$job$base_dir, offset))) > 0)
     inputs <- sprintf("%s/%s/%s/daily_summary/attribution/*", conf$job$base_dir, basedate, offset)
     if (exists) {
-      inputs <- c(inputs, sprintf("%s/customer_attributes/%s/*", conf$job$base_dir, offset))
+      inputs <- c(inputs, sprintf("%s/attributes/%s/*", conf$job$base_dir, offset))
     }
 
     args <- c(
@@ -155,7 +155,7 @@ if (nrow(d) > 0) {
       "--defection", task$defection,
       "--risk", task$risk,
       "--input", paste(inputs, collapse = ","),
-      "--output", sprintf("%s/%s/%s/customer_attributes", conf$job$base_dir, basedate, offset)
+      "--output", sprintf("%s/%s/%s/attributes", conf$job$base_dir, basedate, offset)
     )
     
     if (task$overwrite) {
@@ -180,15 +180,15 @@ if (nrow(d) > 0) {
     task <- conf$job$tasks$balancer
     args <- c(
       "--base-date", basedate, 
-      "--input", sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
-      "--output", sprintf("%s/customer_attributes/%s", conf$job$base_dir, offset)
+      "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
+      "--output", sprintf("%s/attributes/%s", conf$job$base_dir, offset)
     )
     
     if (task$overwrite) {
       args <- c(args, "--overwrite")
     }
 
-    du <- dfs.du(conf$fs, sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,LOST,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset))
+    du <- dfs.du(conf$fs, sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATLISK,LOST,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset))
     reduce.tasks <- as.integer(sum(du$length, na.rm = TRUE) / (128 * 1024 * 1024)) + 1
     
     props = task$properties 
@@ -212,7 +212,7 @@ if (nrow(d) > 0) {
     task <- conf$job$tasks$usermeta 
     args <- c(
       "--base-date", basedate, 
-      "--input", sprintf("%s/%s/%s/customer_attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
+      "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
       "--database", task$output$database,
       "--table", task$output$table
     )
@@ -235,7 +235,7 @@ if (nrow(d) > 0) {
     task <- conf$job$tasks$daily_statistics 
     args <- c(
       "--base-date", basedate, 
-      "--input", sprintf("%s/%s/%s/customer_attributes/part-*", conf$job$base_dir, basedate, offset),
+      "--input", sprintf("%s/%s/%s/attributes/part-*", conf$job$base_dir, basedate, offset),
       "--output", sprintf("%s/%s/%s/daily_statistics", conf$job$base_dir, basedate, offset)
     )
 

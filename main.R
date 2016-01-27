@@ -80,7 +80,8 @@ if (nrow(d) > 0) {
     filter <- sprintf("\"p_dt = '%s' and (%s)\"", basedate, paste(sprintf("p_clientid = '%s'", d$client_id[i, ]), collapse = " or "))
     clients <- paste(d$client_id[i, ], collapse = ",")
     
-    cat(print.timestamp(), "\n** Running analytics job.\n")
+    cat("\n")
+    cat(print.timestamp(), "** Running analytics job.\n")
     cat(sprintf("basedate: %s\n", basedate))
     cat(sprintf("timezone offset: %s\n", offset))
     cat("clients:\n")
@@ -102,7 +103,8 @@ if (nrow(d) > 0) {
       args <- c(args, "--overwrite")
     }
     
-    cat(print.timestamp(), "\n* Running daily-summary.\n")
+    cat("\n")
+    cat(print.timestamp(), "* Running daily-summary.\n")
     cat("properties:\n")
     print(task$properties)
     cat("args:\n")
@@ -130,7 +132,8 @@ if (nrow(d) > 0) {
         args <- c(args, "--overwrite")
       }
       
-      cat(print.timestamp(), "\n* Running attribution.\n")
+      cat("\n")
+      cat(print.timestamp(), "* Running attribution.\n")
       cat("properties:\n")
       print(task$properties)
       cat("args:\n")
@@ -166,7 +169,8 @@ if (nrow(d) > 0) {
         args <- c(args, "--overwrite")
       }
       
-      cat(print.timestamp(), "Running customer-attributes task.\n")
+      cat("\n")
+      cat(print.timestamp(), "* Running customer-attributes.\n")
       cat("properties:\n")
       print(task$properties)
       cat("args:\n")
@@ -200,7 +204,8 @@ if (nrow(d) > 0) {
       props = task$properties 
       props$mapred.reduce.tasks = reduce.tasks
       
-      cat(print.timestamp(), "\n* Running balancer.\n")
+      cat("\n")
+      cat(print.timestamp(), "* Running balancer.\n")
       cat("properties:\n")
       print(props)
       cat("args:\n")
@@ -225,7 +230,8 @@ if (nrow(d) > 0) {
         "--table", task$output$table
       )
       
-      cat(print.timestamp(), "\n * Running usermeta.\n")
+      cat("\n")
+      cat(print.timestamp(), "* Running usermeta.\n")
       cat("properties:\n")
       print(task$properties)
       cat("args:\n")
@@ -249,7 +255,8 @@ if (nrow(d) > 0) {
         "--output", sprintf("%s/%s/%s/daily_statistics", conf$job$base_dir, basedate, offset)
       )
       
-      cat(print.timestamp(), "\n* Running daily-statistics.\n")
+      cat("\n")
+      cat(print.timestamp(), "* Running daily-statistics.\n")
       cat("properties:\n")
       print(task$properties)
       cat("args:\n")
@@ -274,7 +281,8 @@ if (nrow(d) > 0) {
         "--output", sprintf("%s/%s/%s/periodic_statistics", conf$job$base_dir, basedate, offset)
       )
       
-      cat(print.timestamp(), "\n* Running periodic-statistics.\n")
+      cat("\n")
+      cat(print.timestamp(), "* Running periodic-statistics.\n")
       cat("properties:\n")
       print(task$properties)
       cat("args:\n")

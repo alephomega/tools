@@ -190,7 +190,7 @@ if (nrow(d) > 0) {
       task <- conf$job$tasks$balancer
       args <- c(
         "--base-date", basedate, 
-        "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
+        "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
         "--output", sprintf("%s/attributes/%s", conf$job$base_dir, offset)
       )
       
@@ -198,7 +198,7 @@ if (nrow(d) > 0) {
         args <- c(args, "--overwrite")
       }
       
-      du <- dfs.du(conf$fs, sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATLISK,LOST,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset))
+      du <- dfs.du(conf$fs, sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATRISK,LOST,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset))
       reduce.tasks <- as.integer(sum(du$length, na.rm = TRUE) / (128 * 1024 * 1024)) + 1
       
       props = task$properties 
@@ -225,7 +225,7 @@ if (nrow(d) > 0) {
       task <- conf$job$tasks$usermeta 
       args <- c(
         "--base-date", basedate, 
-        "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATLISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
+        "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
         "--database", task$output$database,
         "--table", task$output$table
       )

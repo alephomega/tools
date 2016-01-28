@@ -71,44 +71,44 @@ if (nrow(d) > 0) {
     filter <- sprintf("\"p_dt = '%s' and (%s)\"", basedate, paste(sprintf("p_clientid = '%s'", d$client_id[i, ]), collapse = " or "))
     clients <- d$client_id[i, ]
     
-    cat("\n", print.timestamp(), " ** Running analytics job.\n", sep = "")
+    cat(print.timestamp(), "** Running analytics job.\n")
     cat(sprintf("basedate: %s\n", basedate))
     cat(sprintf("timezone offset: %s\n", offset))
-    cat("clients:\n")
-    cat(paste(clients, collapse = ","), "\n")
+    cat(sprintf("clients: %s\n", paste(clients, collapse = ",")))
     
     s <- input.size(conf, basedate, clients)
+    cat(sprintf("input size: %f\n", s))
+    
+    z <- FALSE
     if (s == 0) {
-      cat(sprintf("input size: %f\n", s))
       cat(print.timestamp(), "No input to process.\n")
-      next
+    } else {
+      args <- c(
+        "--base-time", basetime, 
+        "--base-date", basedate, 
+        "--offset", offset
+      )
+  
+      command <- file.path(getwd(), "daily_summary.R")
+      run.task(command, c(args, "--filter", filter))
+  
+      tz.basedir <- job.tz.basedir(conf, basedate, offset)
+      z <- fs.exists(conf$fs, sprintf("%s/daily_summary", tz.basedir))
+      if (z) {
+        command <- file.path(getwd(), "attribution.R")
+        run.task(command, args)
+      
+        command <- file.path(getwd(), "attributes.R")
+        run.task(command, args)
+      
+        command <- file.path(getwd(), "balancer.R")
+        run.task(command, args, wait = FALSE)
+      
+        command <- file.path(getwd(), "daily_statistics.R")
+        run.task(command, args, wait = FALSE)
+      }
     }
-    
-    args <- c(
-      "--base-time", basetime, 
-      "--base-date", basedate, 
-      "--offset", offset
-    )
-
-    command <- file.path(getwd(), "daily_summary.R")
-    run.task(command, c(args, "--filter", filter))
-
-    tz.basedir <- job.tz.basedir(conf, basedate, offset)
-    z <- fs.exists(conf$fs, sprintf("%s/daily_summary", tz.basedir))
-    if (z) {
-      command <- file.path(getwd(), "attribution.R")
-      run.task(command, args)
-    
-      command <- file.path(getwd(), "attributes.R")
-      run.task(command, args)
-    
-      command <- file.path(getwd(), "balancer.R")
-      run.task(command, args, wait = FALSE)
-    
-      command <- file.path(getwd(), "daily_statistics.R")
-      run.task(command, args, wait = FALSE)
-    }
-
+      
     command <- file.path(getwd(), "periodic_statistics.R")
     run.task(command, args, wait = FALSE)
 

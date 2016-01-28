@@ -27,7 +27,7 @@ if (task$overwrite) {
 }
 
 
-cat("\n", print.timestamp(), " * Running daily-statistics.\n", sep = "")
+cat(print.timestamp(), "* Running daily-statistics.\n")
 
 cat("properties:\n")
 print(task$properties)

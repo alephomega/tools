@@ -40,7 +40,7 @@ if (!is.na(input)) {
   }
   
 
-  cat("\n", print.timestamp(), " * Running periodic-statistics.\n", sep = "")
+  cat(print.timestamp(), " * Running periodic-statistics.\n")
   
   cat("properties:\n")
   print(task$properties)

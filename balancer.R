@@ -35,7 +35,7 @@ if (task$overwrite) {
 props = task$properties 
 props$mapred.reduce.tasks = reduce.tasks(tz.basedir)
 
-cat("\n", print.timestamp(), " * Running balancer.\n", sep = "")
+cat(print.timestamp(), "* Running balancer.\n")
 
 cat("properties:\n")
 print(props)

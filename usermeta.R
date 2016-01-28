@@ -25,7 +25,7 @@ args <- c(
   task$output$table
 )
 
-cat("\n", print.timestamp(), " * Running usermeta.\n", sep = "")
+cat(print.timestamp(), " * Running usermeta.\n")
 
 cat("properties:\n")
 print(task$properties)

@@ -33,7 +33,7 @@ if (task$overwrite) {
 }
 
 props = task$properties 
-props$mapred.reduce.tasks = reduce.tasks(conf, basedate, offset)
+props$mapred.reduce.tasks = reduce.tasks(tz.basedir)
 
 cat("\n", print.timestamp(), "* Running balancer.\n")
 
@@ -43,10 +43,13 @@ print(props)
 cat("args:\n")
 print(args)
 
+
+output.new <- sprintf("%s/attributes/%s", basedir, offset)
+output.old <- sprintf("%s/attributes/_%s.%s", basedir, offset, basedate)
 dfs.rename(
   conf$fs, 
-  sprintf("%s/attributes/%s", basedir, offset), 
-  sprintf("%s/attributes/_%s.%s", basedir, offset, basedate)
+  output.new,
+  output.old
 )
 
 tryCatch(
@@ -60,10 +63,14 @@ tryCatch(
       props = props
     )
   }, error = function(e) {
+    dfs.rm(
+      conf$fs,
+      output.new
+    )
     dfs.rename(
       conf$fs, 
-      sprintf("%s/attributes/_%s.%s", basedir, offset, basedate), 
-      sprintf("%s/attributes/%s", basedir, offset)
+      output.old,
+      output.new
     )
     
     stop(e)
@@ -72,6 +79,6 @@ tryCatch(
 
 dfs.rm(
   conf$fs, 
-  sprintf("%s/attributes/_%s.%s", basedir, offset, basedate)
+  output.old
 )
 

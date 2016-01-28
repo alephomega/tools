@@ -81,21 +81,15 @@ if (nrow(d) > 0) {
       command <- file.path(getwd(), "attribution.R")
       args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
       run.task(command, args)
-    }
     
-    if (z) {
       command <- file.path(getwd(), "attributes.R")
       args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
       run.task(command, args)
-    }
     
-    if (z) {
       command <- file.path(getwd(), "balancer.R")
       args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
       run.task(command, args, wait = FALSE)
-    }
     
-    if (z) {
       command <- file.path(getwd(), "daily_statistics.R")
       args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
       run.task(command, args, wait = FALSE)

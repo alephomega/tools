@@ -22,6 +22,11 @@ args <- c(
   sprintf("%s/daily_statistics", tz.basedir)
 )
 
+if (task$overwrite) {
+  args <- c(args, "--overwrite")
+}
+
+
 cat("\n", print.timestamp(), "* Running daily-statistics.\n")
 
 cat("properties:\n")

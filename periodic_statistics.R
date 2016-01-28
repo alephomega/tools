@@ -10,11 +10,16 @@ conf <- config(args.basetime())
 basedir <- job.basedir(conf)
 tz.basedir <- job.tz.basedir(conf, basedate, offset)
 
-input = NA
-if (fs.exists(conf$fs, sprintf("%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", tz.basedir))) {
-  input = sprintf("%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*"
-} else if (fs.exists(conf$fs, sprintf("%s/attributes/%s", basedir, offset))) {
-  input = sprintf("%s/attributes/%s/*", basedir, offset)
+input <- NA
+path <- sprintf("%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", tz.basedir)
+
+if (fs.exists(conf$fs, path)) {
+  input <- path
+} else {
+  path <- sprintf("%s/attributes/%s", basedir, offset)
+  if (fs.exists(conf$fs, path)) {
+    input <- path
+  }
 }
 
 if (!is.na(input)) {
@@ -29,7 +34,12 @@ if (!is.na(input)) {
     "--output", 
     sprintf("%s/periodic_statistics", tz.basedir)
   )
+
+  if (task$overwrite) {
+    args <- c(args, "--overwrite")
+  }
   
+
   cat("\n", print.timestamp(), "* Running periodic-statistics.\n")
   
   cat("properties:\n")

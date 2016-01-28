@@ -15,7 +15,7 @@ task <- conf$job$tasks$attributes
 
 inputs <- sprintf("%s/daily_summary/attribution/*", tz.basedir)
 a.path <- sprintf(
-  "%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", 
+  "%s/attributes/{NEW,ACTIVE,ATLISK,ATRISK,WINBACK,UNKNOWN}-*", 
   job.tz.basedir(conf, format(as.Date(basedate, format = "%Y%m%d") - 1, format = "%Y%m%d"), offset)
 )
 
@@ -24,11 +24,20 @@ if (fs.exists(conf$fs, a.path)) {
 }
 
 args <- c(
-  "--base-date", basedate, 
-  "--defection", task$defection,
-  "--risk", task$risk,
-  "--input", paste(inputs, collapse = ","),
-  "--output", sprintf("%s/attributes", tz.basedir)
+  "--base-date", 
+  basedate, 
+
+  "--defection", 
+  task$defection,
+
+  "--risk", 
+  task$risk,
+
+  "--input", 
+  paste(inputs, collapse = ","),
+
+  "--output", 
+  sprintf("%s/attributes", tz.basedir)
 )
 
 if (task$overwrite) {

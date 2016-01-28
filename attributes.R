@@ -44,7 +44,7 @@ if (task$overwrite) {
   args <- c(args, "--overwrite")
 }
 
-cat("\n", print.timestamp(), "* Running customer-attributes.\n")
+cat("\n", print.timestamp(), " * Running customer-attributes.\n", sep = "")
 
 cat("properties:\n")
 print(task$properties)

@@ -53,7 +53,7 @@ if (task$overwrite) {
   args <- c(args, "--overwrite")
 }
 
-cat("\n", print.timestamp(), "* Running daily-summary.\n")
+cat("\n", print.timestamp(), " * Running daily-summary.\n", sep = "")
 
 cat("properties:\n")
 print(task$properties)

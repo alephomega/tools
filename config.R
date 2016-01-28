@@ -26,7 +26,7 @@ config <- function(basetime) {
           main = "com.valuepotion.analytics.DailySummaryAnalytics",
           properties = list (
             hive.metastore.uris = "thrift://on-hadoop-master2.daum.net:9083",
-            mapred.reduce.tasks = 30
+            mapred.reduce.tasks = 50
           ),
           
           input = list (

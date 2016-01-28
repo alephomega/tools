@@ -38,8 +38,13 @@ basetime <- function() {
 }
 
 fs.exists <- function(fs, input) {
-  du <- subset(dfs.du(fs, input), subset = !grepl("/[_\\.][^/]*$", file), select = length)
-  sum(du$length, na.rm = TRUE) > 0
+  ls <- dfs.ls(fs, input)
+  if (nrow(ls) == 0) {
+    FALSE
+  } else {
+    du <- subset(dfs.du(fs, input), subset = !grepl("/[_\\.][^/]*$", file), select = length)
+    sum(du$length, na.rm = TRUE) > 0
+  }
 }
 
 
@@ -210,15 +215,23 @@ if (nrow(d) > 0) {
       print(props)
       cat("args:\n")
       print(args)
-      
-      mr.run(
-        fs = conf$fs, 
-        jt = conf$jt, 
-        jar = file.path(getwd(), "lib", conf$jar), 
-        class = task$main,
-        args = args,
-        props = props
-      )
+     
+      dfs.rename(conf$fs, sprintf("%s/attributes/%s", conf$job$base_dir, offset), sprintf("%s/attributes/_%s.%s", conf$job$base_dir, offset, basedate)) 
+      tryCatch({
+        mr.run(
+          fs = conf$fs, 
+          jt = conf$jt, 
+          jar = file.path(getwd(), "lib", conf$jar), 
+          class = task$main,
+          args = args,
+          props = props
+        )
+      }, error = function(e) {
+        dfs.rename(conf$fs, sprintf("%s/attributes/_%s.%s", conf$job$base_dir, offset, basedate), sprintf("%s/attributes/%s", conf$job$base_dir, offset))
+        stop(e)
+      })
+    
+      dfs.rm(conf$fs, sprintf("%s/attributes/_%s.%s", conf$job$base_dir, offset, basedate))
     }
     
     if (z) {

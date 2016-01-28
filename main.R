@@ -1,16 +1,6 @@
 #!/usr/bin/Rscript --vanilla
 
 library(RPostgreSQL)
-library(MR1.CDH4.7.1)
-
-
-print.timestamp <- function() {
-  strftime(Sys.time(), format="%Y-%m-%d %H:%M:%S") 
-}
-
-is.empty <- function(x) {
-  identical(x, NA) || is.null(x) || length(x) == 0
-}
 
 basedir <- function() {
   args <- commandArgs(trailingOnly = FALSE)
@@ -25,36 +15,26 @@ basedir <- function() {
   dirname(f)
 }
 
-basetime <- function() {
-  args <- commandArgs(TRUE)
-  
-  t0 <- NA
-  m <- match("--base-time", args, 0L)
-  if (m) {
-    t0 <- args[m + 1]
-  }
-  
-  t0
-}
-
-fs.exists <- function(fs, input) {
-  ls <- dfs.ls(fs, input)
-  if (nrow(ls) == 0) {
-    FALSE
-  } else {
-    du <- subset(dfs.du(fs, input), subset = !grepl("/[_\\.][^/]*$", file), select = length)
-    sum(du$length, na.rm = TRUE) > 0
+run.task <- function(command, args, wait = TRUE) {
+  status <- system2(command, args, wait = wait)
+  if (status != 0) {
+    stop(sprintf("%s failed.", command))
   }
 }
 
 
 setwd(basedir())
+
+source("common.R")
 source("config.R")
 
-cat(print.timestamp(), "Reading configurations.\n")
-cat(sprintf("basetime: %s\n\n", basetime()))
 
-conf <- config(basetime())
+cat(print.timestamp(), "Reading configurations.\n")
+
+basetime <- args.basetime()
+cat(sprintf("basetime: %s\n\n", basetime))
+
+conf <- config(basetime)
 print(conf)
 
 cat(print.timestamp(), "Querying target clients.\n")
@@ -85,230 +65,50 @@ if (nrow(d) > 0) {
     filter <- sprintf("\"p_dt = '%s' and (%s)\"", basedate, paste(sprintf("p_clientid = '%s'", d$client_id[i, ]), collapse = " or "))
     clients <- paste(d$client_id[i, ], collapse = ",")
     
-    cat("\n")
-    cat(print.timestamp(), "** Running analytics job.\n")
+    cat("\n", print.timestamp(), "** Running analytics job.\n")
     cat(sprintf("basedate: %s\n", basedate))
     cat(sprintf("timezone offset: %s\n", offset))
     cat("clients:\n")
-    
     print(clients)
-    
-    task <- conf$job$tasks$daily_summary
-    args <- c(
-      "--base-date", basedate, 
-      "--database", task$input$database, 
-      "--table", task$input$table,
-      "--columns", paste(task$input$columns, collapse = ","),
-      "--filter", filter,
-      "--output", sprintf("%s/%s/%s/daily_summary", conf$job$base_dir, basedate, offset),
-      "--intermediate", sprintf("%s/%s/%s/daily_summary.tmp", conf$job$base_dir, basedate, offset)
-    )
-    
-    if (task$overwrite) {
-      args <- c(args, "--overwrite")
-    }
-    
-    cat("\n")
-    cat(print.timestamp(), "* Running daily-summary.\n")
-    cat("properties:\n")
-    print(task$properties)
-    cat("args:\n")
-    cat(paste(args, collapse = ", "), "\n")
-    
-    mr.run(
-      fs = conf$fs, 
-      jt = conf$jt, 
-      jar = file.path(getwd(), "lib", conf$jar), 
-      class = task$main,
-      args = args,
-      props = task$properties
-    )
-    
-    z <- fs.exists(conf$fs, sprintf("%s/%s/%s/daily_summary", conf$job$base_dir, basedate, offset))
+
+    command <- file.path(getwd(), "daily_summary.R")
+    args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset, "--filter", filter)
+    run.task(command, args)
+
+    tz.basedir <- job.tz.basedir(conf, basedate, offset)
+    z <- fs.exists(conf$fs, sprintf("%s/daily_summary", tz.basedir))
     if (z) {
-      task <- conf$job$tasks$attribution
-      args <- c(
-        "--base-date", basedate, 
-        "--input", paste(sprintf("%s/%s/%s/daily_summary/*", conf$job$base_dir, basedate, offset), sprintf("%s/%s/**/part-*", task$attribution_hdfs, basedate), sep = ","),
-        "--output", sprintf("%s/%s/%s/daily_summary/attribution", conf$job$base_dir, basedate, offset)
-      )
-      
-      if (task$overwrite) {
-        args <- c(args, "--overwrite")
-      }
-      
-      cat("\n")
-      cat(print.timestamp(), "* Running attribution.\n")
-      cat("properties:\n")
-      print(task$properties)
-      cat("args:\n")
-      print(args)
-      
-      mr.run(
-        fs = conf$fs, 
-        jt = conf$jt, 
-        jar = file.path(getwd(), "lib", conf$jar), 
-        class = task$main,
-        args = args,
-        props = task$properties
-      )
+      command <- file.path(getwd(), "attribution.R")
+      args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
+      run.task(command, args)
     }
     
     if (z) {
-      task <- conf$job$tasks$attributes
-      exists <- (nrow(dfs.ls(conf$fs, sprintf("%s/attributes/%s", conf$job$base_dir, offset))) > 0)
-      inputs <- sprintf("%s/%s/%s/daily_summary/attribution/*", conf$job$base_dir, basedate, offset)
-      if (exists) {
-        inputs <- c(inputs, sprintf("%s/attributes/%s/*", conf$job$base_dir, offset))
-      }
-      
-      args <- c(
-        "--base-date", basedate, 
-        "--defection", task$defection,
-        "--risk", task$risk,
-        "--input", paste(inputs, collapse = ","),
-        "--output", sprintf("%s/%s/%s/attributes", conf$job$base_dir, basedate, offset)
-      )
-      
-      if (task$overwrite) {
-        args <- c(args, "--overwrite")
-      }
-      
-      cat("\n")
-      cat(print.timestamp(), "* Running customer-attributes.\n")
-      cat("properties:\n")
-      print(task$properties)
-      cat("args:\n")
-      print(args)
-      
-      mr.run(
-        fs = conf$fs, 
-        jt = conf$jt, 
-        jar = file.path(getwd(), "lib", conf$jar), 
-        class = task$main,
-        args = args,
-        props = task$properties
-      )
+      command <- file.path(getwd(), "attributes.R")
+      args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
+      run.task(command, args)
     }
     
     if (z) {
-      task <- conf$job$tasks$balancer
-      args <- c(
-        "--base-date", basedate, 
-        "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
-        "--output", sprintf("%s/attributes/%s", conf$job$base_dir, offset)
-      )
-      
-      if (task$overwrite) {
-        args <- c(args, "--overwrite")
-      }
-      
-      du <- dfs.du(conf$fs, sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATRISK,LOST,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset))
-      reduce.tasks <- as.integer(sum(du$length, na.rm = TRUE) / (128 * 1024 * 1024)) + 1
-      
-      props = task$properties 
-      props$mapred.reduce.tasks = reduce.tasks
-      
-      cat("\n")
-      cat(print.timestamp(), "* Running balancer.\n")
-      cat("properties:\n")
-      print(props)
-      cat("args:\n")
-      print(args)
-     
-      dfs.rename(conf$fs, sprintf("%s/attributes/%s", conf$job$base_dir, offset), sprintf("%s/attributes/_%s.%s", conf$job$base_dir, offset, basedate)) 
-      tryCatch({
-        mr.run(
-          fs = conf$fs, 
-          jt = conf$jt, 
-          jar = file.path(getwd(), "lib", conf$jar), 
-          class = task$main,
-          args = args,
-          props = props
-        )
-      }, error = function(e) {
-        dfs.rename(conf$fs, sprintf("%s/attributes/_%s.%s", conf$job$base_dir, offset, basedate), sprintf("%s/attributes/%s", conf$job$base_dir, offset))
-        stop(e)
-      })
-    
-      dfs.rm(conf$fs, sprintf("%s/attributes/_%s.%s", conf$job$base_dir, offset, basedate))
+      command <- file.path(getwd(), "balancer.R")
+      args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
+      run.task(command, args, wait = FALSE)
     }
     
     if (z) {
-      task <- conf$job$tasks$usermeta 
-      args <- c(
-        "--base-date", basedate, 
-        "--input", sprintf("%s/%s/%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", conf$job$base_dir, basedate, offset),
-        "--database", task$output$database,
-        "--table", task$output$table
-      )
-      
-      cat("\n")
-      cat(print.timestamp(), "* Running usermeta.\n")
-      cat("properties:\n")
-      print(task$properties)
-      cat("args:\n")
-      print(args)
-      
-      mr.run(
-        fs = conf$fs,
-        jt = conf$jt,
-        jar = file.path(getwd(), "lib", conf$jar),
-        class = task$main,
-        args = args,
-        props = task$properties
-      )
+      command <- file.path(getwd(), "daily_statistics.R")
+      args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
+      run.task(command, args, wait = FALSE)
     }
-    
+
+    command <- file.path(getwd(), "periodic_statistics.R")
+    args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
+    run.task(command, args, wait = FALSE)
+
     if (z) {
-      task <- conf$job$tasks$daily_statistics 
-      args <- c(
-        "--base-date", basedate, 
-        "--input", sprintf("%s/%s/%s/attributes/part-*", conf$job$base_dir, basedate, offset),
-        "--output", sprintf("%s/%s/%s/daily_statistics", conf$job$base_dir, basedate, offset)
-      )
-      
-      cat("\n")
-      cat(print.timestamp(), "* Running daily-statistics.\n")
-      cat("properties:\n")
-      print(task$properties)
-      cat("args:\n")
-      print(args)
-      
-      mr.run(
-        fs = conf$fs,
-        jt = conf$jt,
-        jar = file.path(getwd(), "lib", conf$jar),
-        class = task$main,
-        args = args,
-        props = task$properties
-      )
-    }
-    
-    z <- fs.exists(conf$fs, sprintf("%s/attributes/%s", conf$job$base_dir, offset))
-    if (z) {
-      task <- conf$job$tasks$periodic_statistics 
-      args <- c(
-        "--base-date", basedate, 
-        "--input", sprintf("%s/attributes/%s/*", conf$job$base_dir, offset),
-        "--output", sprintf("%s/%s/%s/periodic_statistics", conf$job$base_dir, basedate, offset)
-      )
-      
-      cat("\n")
-      cat(print.timestamp(), "* Running periodic-statistics.\n")
-      cat("properties:\n")
-      print(task$properties)
-      cat("args:\n")
-      print(args)
-      
-      mr.run(
-        fs = conf$fs,
-        jt = conf$jt,
-        jar = file.path(getwd(), "lib", conf$jar),
-        class = task$main,
-        args = args,
-        props = task$properties
-      )
+      command <- file.path(getwd(), "usermeta.R")
+      args <- c("--base-time", basetime, "--base-date", basedate, "--offset", offset)
+      run.task(command, args)
     }
   }
 } else {

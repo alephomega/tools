@@ -79,16 +79,17 @@ if (nrow(d) > 0) {
     s <- input.size(conf, basedate, clients)
     cat(sprintf("input size: %f\n", s))
     
+    args <- c(
+      "--base-time", basetime, 
+      "--base-date", basedate, 
+      "--offset", offset
+    )
+    
     z <- FALSE
+    
     if (s == 0) {
       cat(print.timestamp(), "No input to process.\n")
     } else {
-      args <- c(
-        "--base-time", basetime, 
-        "--base-date", basedate, 
-        "--offset", offset
-      )
-  
       command <- file.path(getwd(), "daily_summary.R")
       run.task(command, c(args, "--filter", filter))
   

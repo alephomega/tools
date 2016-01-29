@@ -16,7 +16,7 @@ args <- c(
   basedate, 
   
   "--input", 
-  paste(sprintf("%s/daily_summary/*", tz.basedir), sprintf("%s/%s/**/part-*", task$attribution_hdfs, basedate), sep = ","),
+  paste(sprintf("%s/daily_summary/*", tz.basedir), sprintf("%s/%s/*/part-*", task$attribution_hdfs, basedate), sep = ","),
   
   "--output", 
   sprintf("%s/%s/%s/daily_summary/attribution", conf$job$base_dir, basedate, offset)

@@ -77,7 +77,7 @@ if (nrow(d) > 0) {
     cat(sprintf("clients: %s\n", paste(clients, collapse = ",")))
     
     s <- input.size(conf, basedate, clients)
-    cat(sprintf("input size: %f\n", s))
+    cat(sprintf("input size: %.0f\n", s))
     
     args <- c(
       "--base-time", basetime, 

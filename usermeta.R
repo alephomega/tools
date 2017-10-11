@@ -10,35 +10,40 @@ conf <- config(args.basetime())
 tz.basedir <- job.tz.basedir(conf, basedate, offset)
 
 
+cat(print.timestamp(), "* Running usermeta.\n")
+
 task <- conf$job$tasks$usermeta 
-args <- c(
-  "--base-date", 
-  basedate, 
+input <- sprintf("%s/attributes/{NEW,ACTIVE,ATLISK,ATRISK,WINBACK,UNKNOWN}-*", tz.basedir)
+if (fs.exists(conf$fs, input)) {
+  args <- c(
+    "--base-date", 
+    basedate, 
+    
+    "--input", 
+    input,
+    
+    "--database", 
+    task$output$database,
+    
+    "--table", 
+    task$output$table
+  )
   
-  "--input", 
-  sprintf("%s/attributes/{NEW,ACTIVE,ATRISK,WINBACK,UNKNOWN}-*", tz.basedir),
+  cat("properties:\n")
+  print(task$properties)
   
-  "--database", 
-  task$output$database,
+  cat("args:\n")
+  print(args)
   
-  "--table", 
-  task$output$table
-)
-
-cat(print.timestamp(), " * Running usermeta.\n")
-
-cat("properties:\n")
-print(task$properties)
-
-cat("args:\n")
-print(args)
-
-
-mr.run(
-  fs = conf$fs,
-  jt = conf$jt,
-  jar = file.path(getwd(), "lib", conf$jar),
-  class = task$main,
-  args = args,
-  props = task$properties
-)
+  
+  mr.run(
+    fs = conf$fs,
+    jt = conf$jt,
+    jar = file.path(getwd(), "lib", conf$jar),
+    class = task$main,
+    args = args,
+    props = task$properties
+  )
+} else {
+  cat(print.timestamp(), "No input to process.\n") 
+}

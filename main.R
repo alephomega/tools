@@ -93,30 +93,27 @@ if (nrow(d) > 0) {
       command <- file.path(getwd(), "daily_summary.R")
       run.task(command, c(args, "--filter", filter))
   
-      tz.basedir <- job.tz.basedir(conf, basedate, offset)
-      z <- fs.exists(conf$fs, sprintf("%s/daily_summary", tz.basedir))
-      if (z) {
-        command <- file.path(getwd(), "attribution.R")
-        run.task(command, args)
-      
-        command <- file.path(getwd(), "attributes.R")
-        run.task(command, args)
-      
-        command <- file.path(getwd(), "balancer.R")
-        run.task(command, args, wait = FALSE)
-      
-        command <- file.path(getwd(), "daily_statistics.R")
-        run.task(command, args, wait = FALSE)
-      }
+      command <- file.path(getwd(), "attribution.R")
+      run.task(command, args)
     }
+      
+    command <- file.path(getwd(), "attributes.R")
+    run.task(command, args)
+      
+    #command <- file.path(getwd(), "balancer.R")
+    #run.task(command, args, wait = FALSE)
+      
+    command <- file.path(getwd(), "daily_statistics.R")
+    run.task(command, args, wait = FALSE)
       
     command <- file.path(getwd(), "periodic_statistics.R")
     run.task(command, args, wait = FALSE)
 
-    if (z) {
-      command <- file.path(getwd(), "usermeta.R")
-      run.task(command, args)
-    }
+    command <- file.path(getwd(), "drop.R")
+    run.task(command, c(args, "--clients", paste(clients, collapse = ",")))
+
+    command <- file.path(getwd(), "usermeta.R")
+    run.task(command, args)
   }
 } else {
   cat(print.timestamp(), "No clients to process.\n")
